@@ -17,9 +17,22 @@ data = pd.read_csv('~/PycharmProjects/Code_M_M2/base_nlp.csv')
 # Define the list of parties
 parties = ['RN', 'LREM', 'LFI', 'LR', 'PCF', 'Autres partis de droite', 'Autres partis de gauche']
 
+
 # Function to filter the dataset for a specific party
 def filter_dataset_by_party(dataset, party):
     return dataset[dataset['Party_rec'] == party]
+
+
+def Clean(txt):
+    repls = ".,;:!\"'/()[]{ }+<>*’%&|-"
+    for r in repls:
+        txt = txt.replace(r, " ")
+    txt.replace("- ", " ")
+
+    while txt.count("  ") > 0:
+        txt = txt.replace("  ", " ")
+    return txt
+
 
 # Load the French stop words
 stop_words = stopwords.words('french')
@@ -36,19 +49,23 @@ party_text = {}
 # Preprocess and collect text for each party
 for party in parties:
     party_data = filter_dataset_by_party(data, party)
-    party_text[party] = ' '.join([token.lemma_ for doc in nlp.pipe(party_data['text']) for token in doc if not token.is_stop])
+    party_text[party] = ' '.join(
+        [Clean(token.lemma_) for doc in nlp.pipe(party_data['text']) for token in doc if not token.is_stop])
+
 # For each party
 for party in parties:
     # 1. Collect unique bios
     unique_bios = set(filter_dataset_by_party(data, party)['from_user_description'])
 
     # 2. Preprocess the bios (we'll just do lowercasing here, you might want to add more preprocessing steps)
-    processed_bios = [' '.join([word.lower() for word in nltk.word_tokenize(bio) if word not in stopwords.words('french')]) for bio in unique_bios if isinstance(bio, str)]
+    processed_bios = [
+        ' '.join([Clean(word.lower()) for word in nltk.word_tokenize(bio) if word not in stopwords.words('french')]) for
+        bio in unique_bios if isinstance(bio, str)]
 
-    # Get the bigrams for each bio
+    # Get the trigrams for each bio
     trigram = [b for bio in processed_bios for b in ngrams(nltk.word_tokenize(bio), 3)]
 
-    # Get the most common bigrams
+    # Get the most common trigrams
     most_common_trigrams = Counter(trigram).most_common(10)
 
     print(f"For the party {party}, the most common trigrams are:")
